@@ -3,23 +3,24 @@ import torch
 import json
 import os 
 
-os.environ["HF_DATASETS_OFFLINE"] = "true"
+os.environ["HF_DATASETS_OFFLINE"] = "false"
+os.environ["HF_HUB_OFFLINE"] = "false"
 
 def set_seed(seed):
     np.random.seed(seed)
     torch.random.manual_seed(seed)
 
 
-def get_wikitext2(nsamples, seed, seqlen, model, data_path, cached = True, read_json = False):
-    
-    if not cached:
-        from datasets import load_dataset, load_from_disk
-        traindata = load_dataset('wikitext', 'wikitext-2-raw-v1', split='train', cache_dir=data_path)
-        testdata = load_dataset('wikitext', 'wikitext-2-raw-v1', split='test', cache_dir=data_path)
+def get_wikitext2(nsamples, seed, seqlen, model, data_path, cached = False, read_json = False):
+    cached=False
+    #if not cached:
+    from datasets import load_dataset, load_from_disk
+    traindata = load_dataset('wikitext', 'wikitext-2-raw-v1', split='train')
+    testdata = load_dataset('wikitext', 'wikitext-2-raw-v1', split='test')
 
-        traindata.save_to_disk(os.path.join(data_path,'wikitext','wiki-train'))
-        testdata.save_to_disk(os.path.join(data_path,'wikitext','wiki-test'))
-    elif read_json == False:
+    traindata.save_to_disk(os.path.join(data_path,'wikitext','wiki-train'))
+    testdata.save_to_disk(os.path.join(data_path,'wikitext','wiki-test'))
+    '''elif read_json == False:
         from datasets import load_dataset, load_from_disk
         traindata = load_from_disk(os.path.join(data_path,'wikitext','wiki-train'))
         testdata = load_from_disk(os.path.join(data_path,'wikitext','wiki-test'))
@@ -29,10 +30,11 @@ def get_wikitext2(nsamples, seed, seqlen, model, data_path, cached = True, read_
         f = open(os.path.join(data_path,'wikitrain.json'))
         traindata =json.load(f)
         f = open(os.path.join(data_path,'wikitest.json'))
-        testdata =json.load(f)
+        testdata =json.load(f)'''
 
     from transformers import AutoTokenizer 
     tokenizer = AutoTokenizer.from_pretrained(model, use_fast=False, local_files_only = cached, cache_dir=data_path)
+    print(type(traindata.dataset))
     trainenc = tokenizer("\n\n".join(traindata), return_tensors='pt')
     testenc = tokenizer("\n\n".join(testdata), return_tensors='pt')
 
@@ -93,16 +95,11 @@ def get_ptb(nsamples, seed, seqlen, model, data_path, cached = True, read_json =
 
 def get_c4_val(nsamples, testnsamples, seed, seqlen, model , data_path, cached=True):
     
-    if not cached:
-        from datasets import load_dataset
-        valdata = load_dataset(
-            'allenai/c4', 'allenai--c4', data_files={'validation': 'en/c4-validation.00000-of-00008.json.gz'}, split='validation', cache_dir=data_path
-            )
-        valdata.save_to_disk(os.path.join(data_path,'c4','c4-val'))
-    else:
-        from datasets import load_from_disk
-        valdata = load_from_disk(os.path.join(data_path,'c4','c4-val'))
-    
+    from datasets import load_dataset
+    valdata = load_dataset('allenai/c4', data_files={'validation': 'en/c4-validation.00000-of-00008.json.gz'}, split='validation')
+    #valdata = load_dataset("allenai/c4", "en", split="validation")
+    valdata.save_to_disk(os.path.join(data_path,'c4','c4-val'))
+
     from transformers import AutoTokenizer
     tokenizer = AutoTokenizer.from_pretrained(model, use_fast=False, local_files_only = cached, cache_dir=data_path)
     import random
